@@ -94,7 +94,6 @@ export function EditorActions({
         </span>
       )}
       <div className="titlebar-sep" aria-hidden />
-      <SettingsMenu onOpen={onOpenSettings} />
       <div
         className={`export-split${exportMenuOpen ? ' open' : ''}`}
         onMouseEnter={openExportMenu}
@@ -172,6 +171,8 @@ export function EditorActions({
       >
         Present
       </button>
+      {/* Keep settings last so it stays anchored by the window controls when Export/Present hide. */}
+      <SettingsMenu onOpen={onOpenSettings} />
     </>
   )
 }
