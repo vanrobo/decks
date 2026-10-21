@@ -116,8 +116,20 @@ jobs:
 
             ## Downloads
             - **Windows:** `DECKS-Setup-*.exe` (installer) or `DECKS-Portable-*.exe`
-            - **macOS:** `DECKS-*-mac-arm64.dmg` (Apple Silicon) or `DECKS-*-mac-x64.dmg` (Intel). Unsigned — right-click → Open the first time.
+            - **macOS:** `DECKS-*-mac-arm64.dmg` (Apple Silicon) or `DECKS-*-mac-x64.dmg` (Intel)
             - **Linux:** `DECKS-*-linux.AppImage` or `.deb`
+
+            ## Windows: if SmartScreen blocks it
+            Windows may say the app is unrecognized because this build is not code-signed yet.
+
+            1. Right-click the downloaded `.exe` → **Properties**
+            2. At the bottom, check **Unblock** → **Apply** → **OK**
+            3. Double-click the `.exe` again
+
+            If it still closes with no **Run anyway** option, open **Settings → Privacy & security → Windows Security → App & browser control → Smart App Control** and turn it **Off** (or Evaluation), then try again.
+
+            ## macOS: first open
+            Right-click the app → **Open** (unsigned build).
           files: upload/*
           fail_on_unmatched_files: true
         env:
