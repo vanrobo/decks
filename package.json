@@ -173,11 +173,6 @@
         }
       ],
       "artifactName": "DECKS-${version}-linux.${ext}",
-      "desktop": {
-        "Name": "DECKS",
-        "Comment": "Offline pitch decks for designathons",
-        "Categories": "Office;Education;"
-      },
       "fileAssociations": [
         {
           "ext": "core",
