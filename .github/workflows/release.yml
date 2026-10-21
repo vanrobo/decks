@@ -112,7 +112,7 @@ jobs:
           tag_name: ${{ steps.tag.outputs.tag }}
           name: DECKS ${{ steps.tag.outputs.tag }}
           body: |
-            Offline pitch decks for designathons — by COЯE.
+            Offline pitch decks for designathons - by COЯE.
 
             ## Downloads
             - **Windows:** `DECKS-Setup-*.exe` (installer) or `DECKS-Portable-*.exe`
