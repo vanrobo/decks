@@ -129,7 +129,7 @@
       "artifactName": "DECKS-Portable-${version}.${ext}"
     },
     "mac": {
-      "icon": "build/icon-dark.png",
+      "icon": "build/icon-1024.png",
       "category": "public.app-category.productivity",
       "target": [
         {
@@ -147,7 +147,7 @@
           "name": "Core Deck",
           "description": "Core pitch deck",
           "role": "Editor",
-          "icon": "build/icon-dark.png"
+          "icon": "build/icon-1024.png"
         }
       ]
     },
@@ -155,7 +155,7 @@
       "artifactName": "DECKS-${version}-mac-${arch}.${ext}"
     },
     "linux": {
-      "icon": "build/icon-dark.png",
+      "icon": "build/icon-1024.png",
       "category": "Office",
       "maintainer": "COЯE Computer Club",
       "target": [

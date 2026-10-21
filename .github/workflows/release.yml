@@ -33,7 +33,6 @@ jobs:
             target: mac
             patterns: |
               release/*.dmg
-              release/*.zip
               release/*.blockmap
           - os: ubuntu-latest
             target: linux
