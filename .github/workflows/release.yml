@@ -1,0 +1,125 @@
+name: Release
+
+# Build Windows / macOS / Linux installers and attach them to a GitHub Release.
+# Mac must be built on macOS runners (cannot cross-compile from Windows).
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to attach builds to (e.g. v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: win
+            patterns: |
+              release/*.exe
+              release/*.blockmap
+          - os: macos-latest
+            target: mac
+            patterns: |
+              release/*.dmg
+              release/*.zip
+              release/*.blockmap
+          - os: ubuntu-latest
+            target: linux
+            patterns: |
+              release/*.AppImage
+              release/*.deb
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Linux packaging tools
+        if: matrix.target == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fakeroot dpkg
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate icons
+        run: npm run icons
+
+      - name: Build app
+        run: npm run build
+
+      - name: Package ${{ matrix.target }}
+        run: npx electron-builder --${{ matrix.target }} --publish never
+        env:
+          # Unsigned mac/win builds — fine for club distribution.
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Upload ${{ matrix.target }} artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: decks-${{ matrix.target }}
+          path: ${{ matrix.patterns }}
+          if-no-files-found: error
+
+  publish:
+    needs: package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve tag
+        id: tag
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ inputs.tag }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Publishing assets to $TAG"
+
+      - name: Download platform artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Flatten assets
+        shell: bash
+        run: |
+          mkdir -p upload
+          find release-assets -type f -exec cp -n {} upload/ \;
+          echo "Assets:"
+          ls -lah upload
+
+      - name: Attach assets to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: DECKS ${{ steps.tag.outputs.tag }}
+          body: |
+            Offline pitch decks for designathons — by COЯE.
+
+            ## Downloads
+            - **Windows:** `DECKS-Setup-*.exe` (installer) or `DECKS-Portable-*.exe`
+            - **macOS:** `DECKS-*-mac-arm64.dmg` (Apple Silicon) or `DECKS-*-mac-x64.dmg` (Intel). Unsigned — right-click → Open the first time.
+            - **Linux:** `DECKS-*-linux.AppImage` or `.deb`
+          files: upload/*
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -15,6 +15,9 @@
     "preview": "vite preview",
     "electron": "electron .",
     "dist": "npm run icons && npm run build && electron-builder --win",
+    "dist:win": "npm run icons && npm run build && electron-builder --win",
+    "dist:mac": "npm run icons && npm run build && electron-builder --mac",
+    "dist:linux": "npm run icons && npm run build && electron-builder --linux",
     "dist:portable": "npm run icons && npm run build && electron-builder --win portable",
     "dist:nsis": "npm run icons && npm run build && electron-builder --win nsis",
     "icons": "node scripts/gen-icons.mjs"
@@ -124,6 +127,66 @@
     },
     "portable": {
       "artifactName": "DECKS-Portable-${version}.${ext}"
+    },
+    "mac": {
+      "icon": "build/icon-dark.png",
+      "category": "public.app-category.productivity",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "artifactName": "DECKS-${version}-mac-${arch}.${ext}",
+      "fileAssociations": [
+        {
+          "ext": "core",
+          "name": "Core Deck",
+          "description": "Core pitch deck",
+          "role": "Editor",
+          "icon": "build/icon-dark.png"
+        }
+      ]
+    },
+    "dmg": {
+      "artifactName": "DECKS-${version}-mac-${arch}.${ext}"
+    },
+    "linux": {
+      "icon": "build/icon-dark.png",
+      "category": "Office",
+      "maintainer": "COЯE Computer Club",
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "DECKS-${version}-linux.${ext}",
+      "desktop": {
+        "Name": "DECKS",
+        "Comment": "Offline pitch decks for designathons",
+        "Categories": "Office;Education;"
+      },
+      "fileAssociations": [
+        {
+          "ext": "core",
+          "name": "Core Deck",
+          "description": "Core pitch deck",
+          "mimeType": "application/x-core-deck",
+          "role": "Editor"
+        }
+      ]
     }
   }
 }
