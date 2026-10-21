@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%" style="background-color: #1a1a1a;">
+  <style>
+    .orbit-ring {
+      transform-origin: 200px 200px;
+      /* Cubic-bezier(0.65, 0, 0.25, 1) creates the fast loading-spin with a slow brake */
+      animation: loader-spin 1.8s cubic-bezier(0.65, 0, 0.25, 1) infinite;
+    }
+    
+    @keyframes loader-spin {
+      0% {
+        transform: rotate(0deg);
+      }
+      /* Completes full rotation and leaves a brief settle pause at the end of the loop */
+      88%, 100% {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+
+  <!-- Outer Rotating Ring (White 'C' + Orange Arc) -->
+  <g class="orbit-ring" fill="none" stroke-width="24" stroke-linecap="butt">
+    <!-- White 'C' (270 degrees / 75% of the circle) -->
+    <circle cx="200" cy="200" r="186" stroke="#ffffff" 
+            stroke-dasharray="876.5 292.2" 
+            transform="rotate(45 200 200)" />
+            
+    <!-- Orange Arc (90 degrees / 25% of the circle) -->
+    <circle cx="200" cy="200" r="186" stroke="#F06423" 
+            stroke-dasharray="292.2 876.5" 
+            transform="rotate(-45 200 200)" />
+  </g>
+
+  <!-- Inner Static 'O' Ring (Changed from black to white) -->
+  <circle cx="200" cy="200" r="150" fill="none" stroke="#ffffff" stroke-width="24" />
+
+  <!-- Central Static 'ЯE' Logo (Changed from black to white) -->
+  <g fill="none" stroke="#ffffff" stroke-width="22" stroke-linecap="butt" stroke-linejoin="miter">
+    <!-- Backwards 'R' (Я) -->
+    <path d="M 193 285 L 193 126 L 152 126 A 39 39 0 0 0 152 204 L 193 204" />
+    <path d="M 154 204 L 108 280" />
+
+    <!-- Letter 'E' -->
+    <path d="M 301 126 L 219 126 L 219 274 L 301 274" />
+    <path d="M 219 200 L 282 200" />
+  </g>
+</svg>
