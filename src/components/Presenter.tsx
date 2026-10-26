@@ -19,6 +19,15 @@ const SNAP_EPS = 12
 /** Breathing room above the board while presenting (matches CSS --present-inset). */
 const PRESENT_INSET = 96
 const HINT_AUTO_MS = 2800
+const MIN_ZOOM = 0.5
+const MAX_ZOOM = 2
+/** Ctrl/Cmd+wheel and trackpad pinch (Chromium sets ctrlKey on pinch). */
+const ZOOM_INTENSITY = 0.01
+const ZOOM_STEP = 1.08
+
+function clamp(n: number, lo: number, hi: number) {
+  return Math.max(lo, Math.min(hi, n))
+}
 
 type SnapStop = {
   top: number
@@ -51,6 +60,7 @@ export function Presenter({
   onOpenLink,
 }: Props) {
   const scroller = useRef<HTMLDivElement>(null)
+  const pad = useRef<HTMLDivElement>(null)
   const { presentHintMode, hidePresentCursor } = usePrefs()
   const [hintVisible, setHintVisible] = useState(presentHintMode !== 'off')
 
@@ -78,6 +88,7 @@ export function Presenter({
     let targetTop = scroller.current?.scrollTop ?? 0
     let ignoringScroll = false
     let syncTimer = 0
+    let zoom = 1
 
     const maxTop = (el: HTMLDivElement) =>
       Math.max(0, el.scrollHeight - el.clientHeight)
@@ -103,10 +114,37 @@ export function Presenter({
       if (el) targetTop = el.scrollTop
     }
 
+    /** Keep the point under the cursor (or viewport center) stable while zooming. */
+    const zoomTo = (nextZoom: number, clientY?: number) => {
+      const el = scroller.current
+      const padEl = pad.current
+      if (!el || !padEl) return
+      const z0 = zoom
+      const z1 = clamp(nextZoom, MIN_ZOOM, MAX_ZOOM)
+      if (Math.abs(z1 - z0) < 0.0001) return
+
+      const rect = el.getBoundingClientRect()
+      const y =
+        clientY !== undefined ? clientY - rect.top : rect.height / 2
+      const contentY = (el.scrollTop + y) / z0
+
+      zoom = z1
+      padEl.style.zoom = String(z1)
+
+      const nextTop = Math.max(0, Math.min(maxTop(el), contentY * z1 - y))
+      ignoringScroll = true
+      el.scrollTop = nextTop
+      targetTop = nextTop
+      window.clearTimeout(syncTimer)
+      syncTimer = window.setTimeout(() => {
+        ignoringScroll = false
+      }, 0)
+    }
+
     const stepBySnapOrPage = (dir: 1 | -1) => {
       const el = scroller.current
       if (!el) return
-      const snaps = collectSnapStops(el, PRESENT_INSET)
+      const snaps = collectSnapStops(el, PRESENT_INSET * zoom)
       if (snaps.length === 0) {
         goTo(targetTop + dir * pageStep())
         return
@@ -145,6 +183,22 @@ export function Presenter({
         return
       }
 
+      if (fine && (e.key === '=' || e.key === '+')) {
+        e.preventDefault()
+        zoomTo(zoom * ZOOM_STEP)
+        return
+      }
+      if (fine && e.key === '-') {
+        e.preventDefault()
+        zoomTo(zoom / ZOOM_STEP)
+        return
+      }
+      if (fine && e.key === '0') {
+        e.preventDefault()
+        zoomTo(1)
+        return
+      }
+
       if (
         e.key === ' ' ||
         e.key === 'ArrowDown' ||
@@ -169,13 +223,23 @@ export function Presenter({
       }
     }
 
+    // Ctrl/Cmd+wheel and trackpad pinch (pinch fires wheel with ctrlKey in Chromium)
+    const onWheel = (e: WheelEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return
+      e.preventDefault()
+      zoomTo(zoom * Math.exp(-e.deltaY * ZOOM_INTENSITY), e.clientY)
+    }
+
     const el = scroller.current
     el?.addEventListener('scroll', onScroll, { passive: true })
+    el?.addEventListener('wheel', onWheel, { passive: false })
     window.addEventListener('keydown', onKey)
     return () => {
       window.clearTimeout(syncTimer)
       el?.removeEventListener('scroll', onScroll)
+      el?.removeEventListener('wheel', onWheel)
       window.removeEventListener('keydown', onKey)
+      if (pad.current) pad.current.style.zoom = ''
       root.style.backgroundColor = prevBg
       document.body.style.backgroundColor = prevBody
     }
@@ -187,7 +251,7 @@ export function Presenter({
       ref={scroller}
       style={{ backgroundColor: manifest.background }}
     >
-      <div className="presenter-pad">
+      <div className="presenter-pad" ref={pad}>
         <Board
           manifest={manifest}
           assetUrl={assetUrl}
@@ -201,7 +265,7 @@ export function Presenter({
         <div
           className={`presenter-hint${presentHintMode === 'auto' ? ' is-auto' : ''}`}
         >
-          Esc to exit · Arrows snap · Ctrl+↑↓ fine
+          Esc to exit · Arrows snap · Ctrl+↑↓ fine · Ctrl+scroll zoom
         </div>
       )}
     </div>

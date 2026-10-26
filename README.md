@@ -61,3 +61,6 @@ The installer build is nicer for your own laptop (double-click `.core` files). P
 | Esc | Exit present |
 | Space / ↓ / → | Next snap |
 | ↑ / ← | Prev snap |
+| Ctrl+↑ / Ctrl+↓ | Fine scroll (no snaps) |
+| Ctrl+scroll / pinch | Zoom while presenting |
+| Ctrl+ / Ctrl− / Ctrl+0 | Zoom in / out / reset |
