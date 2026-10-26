@@ -184,6 +184,14 @@ export type CoreAPI = {
   closeWindow: () => Promise<void>
   isMaximized: () => Promise<boolean>
   showError: (title: string, message: string) => Promise<void>
+  checkForUpdates: () => Promise<{
+    ok: boolean
+    reason: string
+    message: string
+    latest?: string
+    current?: string
+  }>
+  openReleases: () => Promise<boolean>
   onExportProgress: (
     handler: (payload: { percent: number; phase: string }) => void,
   ) => () => void

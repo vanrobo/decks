@@ -29,16 +29,19 @@ jobs:
             patterns: |
               release/*.exe
               release/*.blockmap
+              release/latest*.yml
           - os: macos-latest
             target: mac
             patterns: |
               release/*.dmg
               release/*.blockmap
+              release/latest*.yml
           - os: ubuntu-latest
             target: linux
             patterns: |
               release/*.AppImage
               release/*.deb
+              release/latest*.yml
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4

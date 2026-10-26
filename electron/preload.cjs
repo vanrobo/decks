@@ -32,6 +32,8 @@ contextBridge.exposeInMainWorld('core', {
   closeWindow: () => ipcRenderer.invoke('window:close'),
   isMaximized: () => ipcRenderer.invoke('window:isMaximized'),
   showError: (title, message) => ipcRenderer.invoke('dialog:showError', title, message),
+  checkForUpdates: () => ipcRenderer.invoke('app:checkForUpdates'),
+  openReleases: () => ipcRenderer.invoke('app:openReleases'),
 
   onExportProgress: (handler) => {
     const listener = (_e, payload) => handler(payload || { percent: 0, phase: '' })

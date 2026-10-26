@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import type { FrameFillMode } from '../types'
 import { APP_AUTHOR, APP_DEVELOPED, APP_NAME, APP_VERSION } from '../lib/appMeta'
 import {
@@ -145,6 +145,8 @@ function Segment<T extends string | number>({
 
 /** Full settings screen */
 export function SettingsScreen() {
+  const [updateBusy, setUpdateBusy] = useState(false)
+  const [updateNote, setUpdateNote] = useState<string | null>(null)
   const {
     theme,
     setTheme,
@@ -345,6 +347,43 @@ export function SettingsScreen() {
           <SettingsRow label="Version">
             <span className="settings-meta-value">{APP_VERSION}</span>
           </SettingsRow>
+          <SettingsRow
+            label="Updates"
+            hint="Installer builds check GitHub Releases on launch"
+          >
+            <button
+              type="button"
+              className="btn btn-ghost settings-update-btn"
+              disabled={updateBusy || !window.core?.checkForUpdates}
+              onClick={() => {
+                void (async () => {
+                  if (!window.core?.checkForUpdates) return
+                  setUpdateBusy(true)
+                  setUpdateNote(null)
+                  try {
+                    const res = await window.core.checkForUpdates()
+                    setUpdateNote(res.message)
+                    if (res.reason === 'portable' || res.reason === 'error') {
+                      await window.core.openReleases?.()
+                    }
+                  } catch (err) {
+                    setUpdateNote(
+                      err instanceof Error ? err.message : 'Update check failed',
+                    )
+                  } finally {
+                    setUpdateBusy(false)
+                  }
+                })()
+              }}
+            >
+              {updateBusy ? 'Checking…' : 'Check for updates'}
+            </button>
+          </SettingsRow>
+          {updateNote && (
+            <p className="settings-update-note" role="status">
+              {updateNote}
+            </p>
+          )}
           <SettingsRow label="Developed" hint={APP_AUTHOR}>
             <span className="settings-meta-value">{APP_DEVELOPED}</span>
           </SettingsRow>

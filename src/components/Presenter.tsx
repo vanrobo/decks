@@ -134,8 +134,10 @@ export function Presenter({
       const layer = parallax.current
       if (!layer || !canParallax) return
       // Sticky layer stays in view; shift its pattern slower than content.
+      // Dual-layer grids need an explicit position per image (not `center`).
       const drift = scrollTop * (1 - PRESENT_PARALLAX)
-      layer.style.backgroundPosition = `center ${-drift}px`
+      const pos = `0 ${-drift}px`
+      layer.style.backgroundPosition = `${pos}, ${pos}`
     }
 
     const scheduleParallax = () => {
@@ -368,26 +370,64 @@ export function Presenter({
       }
     }
 
-    // Ctrl/Cmd+wheel and trackpad pinch (pinch fires wheel with ctrlKey in Chromium)
+    /**
+     * Own wheel scrolling so mouse notches (deltaMode=line) always move
+     * `.presenter` and update parallax. Native wheel + sticky backgrounds
+     * often desync on Windows; trackpad/middle-drag were fine via scroll events.
+     */
     const onWheel = (e: WheelEvent) => {
-      if (!(e.ctrlKey || e.metaKey)) return
+      const el = scroller.current
+      if (!el) return
+
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault()
+        let dy = e.deltaY
+        // Normalize line/page deltas so mouse notches aren't huge vs pixel pinch.
+        if (e.deltaMode === 1) dy *= 16
+        else if (e.deltaMode === 2) dy *= window.innerHeight
+        const factor = clamp(
+          Math.exp(-dy * ZOOM_INTENSITY),
+          ZOOM_FACTOR_MIN,
+          ZOOM_FACTOR_MAX,
+        )
+        zoomTo(zoom * factor)
+        return
+      }
+
       e.preventDefault()
+      cancelFly()
       let dy = e.deltaY
-      // Normalize line/page deltas so mouse notches aren't huge vs pixel pinch.
-      if (e.deltaMode === 1) dy *= 16
-      else if (e.deltaMode === 2) dy *= window.innerHeight
-      const factor = clamp(
-        Math.exp(-dy * ZOOM_INTENSITY),
-        ZOOM_FACTOR_MIN,
-        ZOOM_FACTOR_MAX,
-      )
-      zoomTo(zoom * factor)
+      if (e.deltaMode === 1) dy *= 40
+      else if (e.deltaMode === 2) dy *= el.clientHeight
+      // Shift/horizontal wheels
+      if (e.shiftKey && e.deltaX === 0) {
+        /* keep vertical */
+      } else if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+        el.scrollLeft = clamp(
+          el.scrollLeft + e.deltaX,
+          0,
+          Math.max(0, el.scrollWidth - el.clientWidth),
+        )
+        return
+      }
+      const next = clamp(el.scrollTop + dy, 0, maxTop(el))
+      ignoringScroll = true
+      el.scrollTop = next
+      targetTop = next
+      syncParallax(next)
+      window.clearTimeout(syncTimer)
+      syncTimer = window.setTimeout(() => {
+        ignoringScroll = false
+      }, 0)
     }
 
     const el = scroller.current
     el?.addEventListener('scroll', onScroll, { passive: true })
     el?.addEventListener('wheel', onWheel, { passive: false })
     window.addEventListener('keydown', onKey)
+    // Mouse wheel targets the focused scroll container on some Windows setups.
+    el?.setAttribute('tabindex', '-1')
+    el?.focus({ preventScroll: true })
     syncParallax(el?.scrollTop ?? 0)
 
     return () => {

@@ -158,6 +158,53 @@ async function main() {
     throw new Error(`Parallax background-position did not drift (${after.bgPos})`)
   }
 
+  // Mouse wheel (line mode) — Windows notch wheels; must drive parallax too.
+  await page.evaluate(() => {
+    localStorage.setItem('decks-reduce-motion', '0')
+  })
+  await page.reload({ waitUntil: 'networkidle' })
+  const wheelBefore = await page.evaluate(() => {
+    const p = document.querySelector('.presenter')
+    const layer = document.querySelector('.presenter-parallax')
+    return {
+      scrollTop: p?.scrollTop ?? 0,
+      bgPos: layer ? getComputedStyle(layer).backgroundPosition : '',
+    }
+  })
+  await page.locator('.presenter').click({ position: { x: 40, y: 40 } })
+  await page.mouse.wheel(0, 480)
+  // Also dispatch a line-mode wheel like a classic mouse notch.
+  await page.evaluate(() => {
+    const el = document.querySelector('.presenter')
+    el?.dispatchEvent(
+      new WheelEvent('wheel', {
+        deltaY: 3,
+        deltaMode: WheelEvent.DOM_DELTA_LINE,
+        bubbles: true,
+        cancelable: true,
+      }),
+    )
+  })
+  await page.waitForTimeout(80)
+  const wheelAfter = await page.evaluate(() => {
+    const p = document.querySelector('.presenter')
+    const layer = document.querySelector('.presenter-parallax')
+    return {
+      scrollTop: p?.scrollTop ?? 0,
+      bgPos: layer ? getComputedStyle(layer).backgroundPosition : '',
+      live: layer?.classList.contains('is-live') ?? false,
+    }
+  })
+  console.log('mouseWheel', { wheelBefore, wheelAfter })
+  if (!(wheelAfter.scrollTop > wheelBefore.scrollTop + 20)) {
+    throw new Error(
+      `Mouse wheel did not scroll presenter (${wheelBefore.scrollTop} → ${wheelAfter.scrollTop})`,
+    )
+  }
+  if (wheelAfter.live && wheelBefore.bgPos === wheelAfter.bgPos) {
+    throw new Error(`Mouse wheel did not drift parallax (${wheelAfter.bgPos})`)
+  }
+
   // Reduce-motion path: flip pref and reload — fly should still land
   await page.evaluate(() => {
     localStorage.setItem('decks-reduce-motion', '1')

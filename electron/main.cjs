@@ -15,6 +15,63 @@ const fsp = require('fs/promises')
 const crypto = require('crypto')
 const JSZip = require('jszip')
 
+/** Portable USB builds can't self-replace; skip auto-update there. */
+function isPortableBuild() {
+  return Boolean(process.env.PORTABLE_EXECUTABLE_DIR)
+}
+
+function canAutoUpdate() {
+  return app.isPackaged && !isPortableBuild()
+}
+
+/**
+ * Check GitHub Releases (vanrobo/decks) for a newer installer and prompt to restart.
+ * Requires latest.yml on the release (uploaded by the Release workflow).
+ */
+function setupAutoUpdater() {
+  if (!canAutoUpdate()) return null
+  let autoUpdater
+  try {
+    ;({ autoUpdater } = require('electron-updater'))
+  } catch (err) {
+    console.warn('electron-updater missing', err)
+    return null
+  }
+
+  autoUpdater.autoDownload = true
+  autoUpdater.autoInstallOnAppQuit = true
+
+  autoUpdater.on('error', (err) => {
+    console.warn('autoUpdater', err?.message || err)
+  })
+
+  autoUpdater.on('update-downloaded', async (info) => {
+    if (!mainWindow) return
+    const ver = info?.version ? `DECKS ${info.version}` : 'A new version'
+    const { response } = await dialog.showMessageBox(mainWindow, {
+      type: 'info',
+      title: 'Update ready',
+      message: `${ver} is ready to install.`,
+      detail: 'Restart DECKS to apply the update. Your boards stay on this PC.',
+      buttons: ['Restart now', 'Later'],
+      defaultId: 0,
+      cancelId: 1,
+    })
+    if (response === 0) {
+      autoUpdater.quitAndInstall(false, true)
+    }
+  })
+
+  // Quiet check a few seconds after launch (don't block first paint).
+  setTimeout(() => {
+    autoUpdater.checkForUpdates().catch((err) => {
+      console.warn('checkForUpdates', err?.message || err)
+    })
+  }, 4000)
+
+  return autoUpdater
+}
+
 /** @type {BrowserWindow | null} */
 let mainWindow = null
 /** Active project working directory (imports / export target) */
@@ -954,6 +1011,57 @@ function registerIpc() {
       message: message || 'Something went wrong',
     })
   })
+
+  ipcMain.handle('app:checkForUpdates', async () => {
+    if (isPortableBuild()) {
+      return {
+        ok: false,
+        reason: 'portable',
+        message:
+          'Portable builds don’t auto-update. Download the latest from GitHub Releases, or use the installer build.',
+      }
+    }
+    if (!app.isPackaged) {
+      return {
+        ok: false,
+        reason: 'dev',
+        message: 'Updates only apply to installed release builds.',
+      }
+    }
+    try {
+      const { autoUpdater } = require('electron-updater')
+      const result = await autoUpdater.checkForUpdates()
+      const updateInfo = result?.updateInfo
+      const latest = updateInfo?.version
+      const current = app.getVersion()
+      if (latest && latest !== current) {
+        return {
+          ok: true,
+          reason: 'available',
+          message: `DECKS ${latest} is available (you have ${current}). Downloading…`,
+          latest,
+          current,
+        }
+      }
+      return {
+        ok: true,
+        reason: 'current',
+        message: `You’re on the latest version (${current}).`,
+        current,
+      }
+    } catch (err) {
+      return {
+        ok: false,
+        reason: 'error',
+        message: err?.message || 'Could not check for updates.',
+      }
+    }
+  })
+
+  ipcMain.handle('app:openReleases', async () => {
+    await shell.openExternal('https://github.com/vanrobo/decks/releases')
+    return true
+  })
 }
 
 function takeOpenPathFromArgv(argv) {
@@ -1009,6 +1117,7 @@ if (!gotLock) {
     createWindow()
     applyWindowIcon()
     nativeTheme.on('updated', () => applyWindowIcon())
+    setupAutoUpdater()
 
     mainWindow?.webContents.on('did-finish-load', () => {
       if (pendingOpenPath) {
