@@ -1,6 +1,6 @@
-import { useRef, useState, type CSSProperties, type DragEvent, type MouseEvent } from 'react'
+import { useRef, useState, type DragEvent, type MouseEvent } from 'react'
 import type { Block, DeckManifest } from '../types'
-import { patternClass } from '../lib/backdrops'
+import { backdropImageStyle, patternClass } from '../lib/backdrops'
 import {
   beginBlockDrag,
   endBlockDrag,
@@ -30,6 +30,11 @@ type Props = {
   /** Placeholder at insert point while media is copying in */
   importing?: BoardImporting | null
   onUpdateBlock?: (id: string, patch: Partial<Block>) => void
+  /**
+   * When true, board-stage has no fill/pattern (Presenter paints a parallax stage).
+   * Content still lays out the same.
+   */
+  detachBackdrop?: boolean
 }
 
 /** Insert-before index from pointer Y relative to block midpoints */
@@ -54,31 +59,18 @@ export function Board({
   onContextMenu,
   importing = null,
   onUpdateBlock,
+  detachBackdrop = false,
 }: Props) {
   const columnRef = useRef<HTMLDivElement>(null)
   const [dropAt, setDropAt] = useState<number | null>(null)
   const backdrop = manifest.backdrop ?? { kind: 'solid' as const }
   const pattern =
-    backdrop.kind === 'pattern' ? patternClass(backdrop.pattern) : ''
-
-  let imageStyle: CSSProperties | undefined
-  if (backdrop.kind === 'image' && backdrop.imageSrc) {
-    const url = assetUrl(backdrop.imageSrc)
-    if (backdrop.imageMode === 'tile') {
-      imageStyle = {
-        backgroundImage: `url("${url}")`,
-        backgroundRepeat: 'repeat',
-        backgroundSize: 'auto',
-      }
-    } else {
-      imageStyle = {
-        backgroundImage: `url("${url}")`,
-        backgroundRepeat: 'no-repeat',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-      }
-    }
-  }
+    !detachBackdrop && backdrop.kind === 'pattern'
+      ? patternClass(backdrop.pattern)
+      : ''
+  const imageStyle = detachBackdrop
+    ? undefined
+    : backdropImageStyle(backdrop, assetUrl)
 
   const clearDrop = () => setDropAt(null)
 
@@ -164,9 +156,9 @@ export function Board({
 
   return (
     <div
-      className={`board-stage frame-fill-${frameFill}${pattern ? ` ${pattern}` : ''}${dropAt !== null ? ' is-dropping' : ''}`}
+      className={`board-stage frame-fill-${frameFill}${pattern ? ` ${pattern}` : ''}${dropAt !== null ? ' is-dropping' : ''}${detachBackdrop ? ' backdrop-detached' : ''}`}
       style={{
-        backgroundColor: manifest.background,
+        backgroundColor: detachBackdrop ? 'transparent' : manifest.background,
         ['--board-width' as string]: `${manifest.width}px`,
         ...imageStyle,
       }}

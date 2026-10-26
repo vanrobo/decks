@@ -2,7 +2,7 @@
   "name": "core",
   "productName": "DECKS",
   "private": true,
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Offline pitch decks for designathons — by COЯE",
   "author": "COЯE Computer Club",
   "copyright": "Copyright © COЯE Computer Club",
@@ -20,7 +20,8 @@
     "dist:linux": "npm run icons && npm run build && electron-builder --linux",
     "dist:portable": "npm run icons && npm run build && electron-builder --win portable",
     "dist:nsis": "npm run icons && npm run build && electron-builder --win nsis",
-    "icons": "node scripts/gen-icons.mjs"
+    "icons": "node scripts/gen-icons.mjs",
+    "smoke:present": "node scripts/smoke-present.mjs"
   },
   "dependencies": {
     "@fontsource/space-grotesk": "^5.3.0",
@@ -36,6 +37,7 @@
     "cross-env": "^10.1.0",
     "electron": "^44.7.2",
     "electron-builder": "^26.15.3",
+    "playwright": "^1.55.0",
     "png-to-ico": "^3.0.2",
     "sharp": "^0.35.5",
     "typescript": "~6.0.2",

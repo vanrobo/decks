@@ -2865,6 +2865,8 @@ ul.library-grid > li {
 .presenter {
   height: 100%;
   overflow: auto;
+  /* Don't let the browser fight our zoom scroll re-anchor. */
+  overflow-anchor: none;
   /* Inline backgroundColor from the board fills any letterbox */
   background: #000;
 }
@@ -2874,8 +2876,32 @@ ul.library-grid > li {
   cursor: none !important;
 }
 
+/*
+ * Sticky stage backdrop: stays in the viewport while the board scrolls.
+ * Negative margin pulls the pad up so content starts at the top edge.
+ * Parallax drifts background-position (patterns / images only).
+ */
+.presenter-parallax {
+  position: sticky;
+  top: 0;
+  height: 100%;
+  height: 100dvh;
+  margin-bottom: -100%;
+  margin-bottom: -100dvh;
+  pointer-events: none;
+  z-index: 0;
+  box-sizing: border-box;
+  background-repeat: repeat;
+}
+
+.presenter-parallax.is-live {
+  will-change: background-position;
+}
+
 .presenter-pad {
   --present-inset: 96px;
+  position: relative;
+  z-index: 1;
   box-sizing: border-box;
   min-height: 100%;
 }
@@ -2883,12 +2909,17 @@ ul.library-grid > li {
 /*
  * Top inset is padding on the board-stage so solid/pattern/image
  * backgrounds continue into the breathing room (no separate gray strip).
+ * With detachBackdrop the stage is transparent — parallax paints the stage.
  */
 .presenter .board-stage {
   padding: var(--present-inset, 96px) 1rem 3rem;
   min-height: 100%;
   min-height: 100dvh;
   box-sizing: border-box;
+}
+
+.presenter .board-stage.backdrop-detached {
+  background-image: none;
 }
 
 .presenter .board-stage.frame-fill-bleed {
